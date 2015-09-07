@@ -34,7 +34,7 @@ class auth_plugin_odoo extends auth_plugin_base {
         set_config('field_updatelocal_city', 'onlogin', 'auth/odoo');
         set_config('field_updatelocal_email', 'onlogin', 'auth/odoo');
         set_config('field_updatelocal_country', 'onlogin', 'auth/odoo');
-        set_config('field_updatelocal_institution', 'onlogin', 'auth/odoo');
+        set_config('field_updatelocal_institutio', 'onlogin', 'auth/odoo');
     }
 
     /**
@@ -125,7 +125,7 @@ class auth_plugin_odoo extends auth_plugin_base {
                     'country',
                     'country_gov',
                     'coordinated_org',
-                    'managed_projects',
+                    'organizations',
                 )
             );
             $user = $users[0];
@@ -159,28 +159,28 @@ class auth_plugin_odoo extends auth_plugin_base {
             }
 
             /* Get organizations */
-            $organizations = array();
+            $organization_ids = array();
             if(isset($user['coordinated_org']) && $user['coordinated_org']) {
-                $coordinated_orgs = $this->odoo_read(
+                $organization_ids = array_merge($organization_ids, $user['coordinated_org']);
+            }
+            if(isset($user['organizations']) && $user['organizations']) {
+                $organization_ids = array_merge($organization_ids, $user['organizations']);
+            }
+            $organization_ids = array_unique($organization_ids);
+
+            if($organization_ids) {
+                $organization_objs = $this->odoo_read(
                     'organization',
-                    $user['coordinated_org'],
+                    $organization_ids,
                     array('name')
                 );
-                $organizations[] = $coordinated_orgs[0]['name'];
-            }
-            if(isset($user['managed_projects']) && $user['managed_projects']) {
-                // Get organizations from user's projects
-                $projects = $this->odoo_read(
-                    'bestja.project',
-                    $user['managed_projects'],
-                    array('organization')
-                );
-                foreach($projects as $project) {
-                    $organizations[] = $project['organization'][1];
+
+                $organizations = array();
+                foreach($organization_objs as $organization) {
+                    $organizations[] = $organization['name'];
                 }
-                $organizations = array_unique($organizations);
+                $userinfo['institution'] = implode(', ', $organizations);
             }
-            $userinfo['institution'] = implode(', ', $organizations);
         }
         return $userinfo;
     }
