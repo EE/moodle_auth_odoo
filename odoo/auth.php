@@ -34,6 +34,34 @@ class auth_plugin_odoo extends auth_plugin_base {
         set_config('field_updatelocal_city', 'onlogin', 'auth/odoo');
         set_config('field_updatelocal_email', 'onlogin', 'auth/odoo');
         set_config('field_updatelocal_country', 'onlogin', 'auth/odoo');
+        set_config('field_updatelocal_institution', 'onlogin', 'auth/odoo');
+    }
+
+    /**
+     * Performs an Odoo "read" query.
+     *
+     * @param string $model The model to query
+     * @param array $ids An array of ids of objects to be retrived.
+     * @param array $fields An array of names of fields to be retived from the objects.
+     * @return bool An array of retrived objects.
+     */
+    function odoo_read($model, $ids, $fields) {
+        $objs = xmlrpc_request(
+            $this->config->url . '/xmlrpc/2/object',
+            'execute_kw',
+            array(
+                $this->config->db,
+                1, // superuser id in Odoo
+                $this->config->password,
+                $model,
+                'read',
+                array($ids),
+                array(
+                    'fields' => $fields
+                )
+            )
+        );
+        return $objs;
     }
 
     /**
@@ -43,7 +71,7 @@ class auth_plugin_odoo extends auth_plugin_base {
      * @param string $password The password (with system magic quotes)
      * @return bool Authentication success or failure.
      */
-    function user_login ($username, $password) {
+    function user_login($username, $password) {
         $user_id = xmlrpc_request(
             $this->config->url . '/xmlrpc/2/common',
             'authenticate',
@@ -86,19 +114,18 @@ class auth_plugin_odoo extends auth_plugin_base {
         );
         /* Get user info */
         if($user_ids) {
-            $users = xmlrpc_request(
-                $this->config->url . '/xmlrpc/2/object',
-                'execute_kw',
+            $users = $this->odoo_read(
+                'res.users',
+                $user_ids,
                 array(
-                    $this->config->db,
-                    1, // superuser id in Odoo
-                    $this->config->password,
-                    'res.users',
-                    'read',
-                    array($user_ids),
-                    array(
-                        'fields' => array('name', 'email', 'city', 'city_gov', 'country', 'country_gov')
-                    )
+                    'name',
+                    'email',
+                    'city',
+                    'city_gov',
+                    'country',
+                    'country_gov',
+                    'coordinated_org',
+                    'managed_projects',
                 )
             );
             $user = $users[0];
@@ -123,23 +150,37 @@ class auth_plugin_odoo extends auth_plugin_base {
                 $country_id = $user['country_gov'][0];
             }
             if($country_id) {
-                $countries = xmlrpc_request(
-                    $this->config->url . '/xmlrpc/2/object',
-                    'execute_kw',
-                    array(
-                        $this->config->db,
-                        1, // superuser id in Odoo
-                        $this->config->password,
-                        'res.country',
-                        'read',
-                        array(array($country_id)),
-                        array(
-                            'fields' => array('code')
-                        )
-                    )
+                $countries = $this->odoo_read(
+                    'res.country',
+                    array($country_id),
+                    array('code')
                 );
                 $userinfo['country'] = strtoupper($countries[0]['code']);
             }
+
+            /* Get organizations */
+            $organizations = array();
+            if(isset($user['coordinated_org']) && $user['coordinated_org']) {
+                $coordinated_orgs = $this->odoo_read(
+                    'organization',
+                    $user['coordinated_org'],
+                    array('name')
+                );
+                $organizations[] = $coordinated_orgs[0]['name'];
+            }
+            if(isset($user['managed_projects']) && $user['managed_projects']) {
+                // Get organizations from user's projects
+                $projects = $this->odoo_read(
+                    'bestja.project',
+                    $user['managed_projects'],
+                    array('organization')
+                );
+                foreach($projects as $project) {
+                    $organizations[] = $project['organization'][1];
+                }
+                $organizations = array_unique($organizations);
+            }
+            $userinfo['institution'] = implode(', ', $organizations);
         }
         return $userinfo;
     }

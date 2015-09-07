@@ -12,8 +12,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version  = 2015052103;
+$plugin->version  = 2015090702;
 $plugin->requires = 2014111000;
-$plugin->release = '0.5.3';
+$plugin->release = '0.6.0';
 $plugin->maturity = MATURITY_BETA;
 $plugin->component = 'auth_odoo';
