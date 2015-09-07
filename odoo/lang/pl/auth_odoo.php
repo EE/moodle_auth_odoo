@@ -13,5 +13,5 @@ $string['odoo_url'] = 'Adres';
 $string['odoo_url_desc'] = 'Bez ukośnika na końcu (np. https://www.odoo.com)';
 $string['odoo_password'] = 'Hasło administratora';
 $string['odoo_password_desc'] = 'Hasło do konta "admin" w Odoo';
-$string['pluginname'] = 'Integracja loginów i haseł w Odoo';
-$string['auth_odoodescription'] = 'Logowanie do Moodle loginów i haseł z Odoo.';
+$string['pluginname'] = 'Integracja loginów i haseł z Odoo';
+$string['auth_odoodescription'] = 'Logowanie do Moodle loginem i hasłem z Odoo.';
