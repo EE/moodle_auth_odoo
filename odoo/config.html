@@ -9,6 +9,9 @@ if (!isset ($config->url)) {
 if (!isset ($config->password)) {
     $config->password = '';
 }
+if (!isset ($config->user)) {
+    $config->user = '';
+}
 ?>
 <table cellspacing="0" cellpadding="5" border="0">
 
@@ -48,6 +51,26 @@ if (!isset ($config->password)) {
         <?php
 
         print_string('odoo_url_desc', 'auth_odoo');
+        ?>
+    </td>
+</tr>
+
+<tr valign="top" class="required">
+    <td align="right"><label for="user"><?php print_string('odoo_user', 'auth_odoo') ?>: </label></td>
+    <td>
+        <input name="user" id="user" type="text" size="30" value="<?php echo $config->user ?>" />
+        <?php
+
+        if (isset($err['user'])) {
+            echo $OUTPUT->error_text($err['user']);
+        }
+
+        ?>
+    </td>
+    <td>
+        <?php
+
+        print_string('odoo_user_desc', 'auth_odoo');
         ?>
     </td>
 </tr>

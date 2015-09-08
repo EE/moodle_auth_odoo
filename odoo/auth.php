@@ -34,24 +34,25 @@ class auth_plugin_odoo extends auth_plugin_base {
         set_config('field_updatelocal_city', 'onlogin', 'auth/odoo');
         set_config('field_updatelocal_email', 'onlogin', 'auth/odoo');
         set_config('field_updatelocal_country', 'onlogin', 'auth/odoo');
-        set_config('field_updatelocal_institutio', 'onlogin', 'auth/odoo');
+        set_config('field_updatelocal_institution', 'onlogin', 'auth/odoo');
     }
 
     /**
      * Performs an Odoo "read" query.
      *
+     * @param integer $uid user id of the admin user
      * @param string $model The model to query
      * @param array $ids An array of ids of objects to be retrived.
      * @param array $fields An array of names of fields to be retived from the objects.
      * @return bool An array of retrived objects.
      */
-    function odoo_read($model, $ids, $fields) {
+    function odoo_read($uid, $model, $ids, $fields) {
         $objs = xmlrpc_request(
             $this->config->url . '/xmlrpc/2/object',
             'execute_kw',
             array(
                 $this->config->db,
-                1, // superuser id in Odoo
+                $uid,
                 $this->config->password,
                 $model,
                 'read',
@@ -97,13 +98,25 @@ class auth_plugin_odoo extends auth_plugin_base {
     function get_userinfo($username) {
         $userinfo = array();
 
-        /* Get user id */
+        /* Get admin user's id */
+        $uid = xmlrpc_request(
+            $this->config->url . '/xmlrpc/2/common',
+            'authenticate',
+            array(
+                $this->config->db,
+                $this->config->user,
+                $this->config->password,
+                array()
+            )
+        );
+
+        /* Get logged-in user's id */
         $user_ids = xmlrpc_request(
             $this->config->url . '/xmlrpc/2/object',
             'execute_kw',
             array(
                 $this->config->db,
-                1, // superuser id in Odoo
+                $uid,
                 $this->config->password,
                 'res.users',
                 'search',
@@ -115,6 +128,7 @@ class auth_plugin_odoo extends auth_plugin_base {
         /* Get user info */
         if($user_ids) {
             $users = $this->odoo_read(
+                $uid,
                 'res.users',
                 $user_ids,
                 array(
@@ -151,6 +165,7 @@ class auth_plugin_odoo extends auth_plugin_base {
             }
             if($country_id) {
                 $countries = $this->odoo_read(
+                    $uid,
                     'res.country',
                     array($country_id),
                     array('code')
@@ -170,6 +185,7 @@ class auth_plugin_odoo extends auth_plugin_base {
 
             if($organization_ids) {
                 $organization_objs = $this->odoo_read(
+                    $uid,
                     'organization',
                     $organization_ids,
                     array('name')
@@ -206,11 +222,15 @@ class auth_plugin_odoo extends auth_plugin_base {
         if (!isset ($config->password)) {
             $config->password = '';
         }
+        if (!isset ($config->user)) {
+            $config->password = '';
+        }
 
         // save settings 
         set_config('db',       $config->db,       'auth/odoo');
         set_config('url',      $config->url,      'auth/odoo');
         set_config('password', $config->password, 'auth/odoo');
+        set_config('user',     $config->user,     'auth/odoo');
 
         return true;
     }
